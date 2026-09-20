@@ -143,7 +143,7 @@ List filters accept repeated params or a comma-separated value. Default sort is
 | `POST` | `/import/preview`, `/import/csv` | Column mapping preview; import (multipart) |
 | `GET` | `/import/batches` | Import history |
 | `GET` | `/acquire/plan` | Search plan for a target prospect count |
-| `POST` | `/acquire/search` | Run Maps searches and import |
+| `POST` | `/acquire/search` | Run Maps searches and import (`provider`, `queries`, `maxPerQuery`, `location`, `dryRun`) |
 | `POST` | `/enrich/batch` | Enrich many |
 | `GET` / `POST` | `/suppression` | List / add suppressed numbers |
 | `DELETE` | `/suppression/:phone` | Remove one |

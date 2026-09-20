@@ -183,7 +183,9 @@ adminRouter.post(
     const schema = z.object({
       provider: z.enum(['google_places', 'apify']),
       queries: z.array(z.string().min(3)).min(1).max(50),
-      maxPerQuery: z.number().int().min(1).max(60).optional(),
+      maxPerQuery: z.number().int().min(1).max(300).optional(),
+      /** Apify only: one location per run, e.g. "Leeds, United Kingdom". */
+      location: z.string().min(2).max(120).optional(),
       dryRun: z.boolean().optional(),
     });
     const parsed = schema.safeParse(req.body);
@@ -196,7 +198,7 @@ adminRouter.post(
 
     if (provider === 'apify') {
       if (!apifyConfigured()) throw new HttpError(400, 'APIFY_TOKEN is not set');
-      const result = await searchGoogleMapsViaApify(queries, maxPerQuery);
+      const result = await searchGoogleMapsViaApify(queries, { maxPerQuery, location: parsed.data.location });
       messages.push(result.message);
       found.push(...result.places);
     } else {

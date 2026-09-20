@@ -67,14 +67,36 @@ mapping first. Column names are matched against the ones Apify, Outscraper,
 Bright Data and PhantomBuster produce; anything unrecognised is yours to map by
 hand.
 
-### Option B — search directly
+### Option B — search Google Maps directly
 
-With `GOOGLE_PLACES_API_KEY` (or `APIFY_TOKEN`) set:
+With `APIFY_TOKEN` (or `GOOGLE_PLACES_API_KEY`) set:
 
 ```bash
-npm run acquire -- --plan-only                 # see the search plan first
-npm run acquire -- --target 1000               # work through it
-npm run acquire -- --cities "Leeds,Sheffield"  # or just a patch
+npm run acquire -- --plan-only                            # see the search plan first
+npm run acquire -- --provider apify --target 1000         # work through it
+npm run acquire -- --provider apify --location "Leeds, United Kingdom"
+npm run acquire -- --cities "Leeds,Sheffield"             # or just a patch
+```
+
+**Apify is the easier route** — it needs one token rather than a Google Cloud
+billing account, and it returns more per place. The importer reads:
+
+- `ownerDescription`, the owner's own write-up. This is where a business
+  actually says "24/7 emergency callouts" or "boiler installations", so it
+  drives most of the service detection — far more than the Google category does.
+- `openingHours`, which is how "Open 24 hours" becomes the 24/7 signal. It only
+  comes back when `scrapePlaceDetailPage` is on, so the built-in caller enables it.
+- `emails`, `facebooks`, `instagrams`, `linkedIns` — array fields. Only a **role**
+  inbox (`info@`, `contact@`, …) is kept; a named personal address is skipped.
+- `categories`, the full list, and Google's own attribute groups.
+
+The actor takes **one location per run**, so `--location` sets the search area.
+"United Kingdom" works: the actor splits a country into subregions itself.
+
+Already ran a scrape from the Apify console? Import the dataset straight in:
+
+```bash
+npm run acquire -- --dataset <apify-dataset-id>
 ```
 
 The planner works across UK cities × the five query templates from the brief
@@ -212,7 +234,8 @@ npm run suppression:import -- tps-export.csv
 | `npm run db:migrate` | Create/upgrade the database |
 | `npm run seed:demo` | Load the fictional sample data (`-- --purge` to remove) |
 | `npm run import:csv -- <file>` | Import a CSV (`--dry-run`, `--target-trades-only`, `--limit N`) |
-| `npm run acquire -- --target 1000` | Search Google Maps and import (`--plan-only`, `--dry-run`) |
+| `npm run acquire -- --target 1000` | Search Google Maps and import (`--provider`, `--location`, `--plan-only`, `--dry-run`) |
+| `npm run acquire -- --dataset <id>` | Import an Apify dataset that has already been scraped |
 | `npm run enrich -- --limit 200` | Enrich prospects (`--all`, `--refresh`, `--providers`) |
 | `npm run rescore` | Rescore everything against the active config |
 | `npm run suppression:import -- <file>` | Load TPS/CTPS numbers into the suppression list |
