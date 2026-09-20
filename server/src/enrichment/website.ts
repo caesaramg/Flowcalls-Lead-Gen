@@ -69,7 +69,7 @@ export async function enrichFromWebsite(website: string): Promise<WebsiteEnrichm
     return { ...empty, message: home.error ?? `Homepage returned HTTP ${home.status}` };
   }
 
-  const analysed: WebsiteSignals[] = [analyseHtml(home.body, home.url)];
+  const analysed: WebsiteSignals[] = [analyseHtml(home.body, home.url, env.userAgent)];
   let bytes = home.body.length;
   let pagesFetched = 1;
 
@@ -78,7 +78,7 @@ export async function enrichFromWebsite(website: string): Promise<WebsiteEnrichm
     if (!(await isAllowedByRobots(link))) continue;
     const page = await fetchText(link, { maxBytes: 1_000_000 });
     if (!page.ok || !page.body) continue;
-    analysed.push(analyseHtml(page.body, page.url));
+    analysed.push(analyseHtml(page.body, page.url, env.userAgent));
     bytes += page.body.length;
     pagesFetched += 1;
   }

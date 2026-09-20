@@ -82,6 +82,27 @@ const GOOGLE_ADS_PATTERNS: RegExp[] = [
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const ROLE_EMAIL = /^(?:info|enquiries|enquiry|contact|hello|admin|office|sales|accounts|service|bookings|support|mail)@/i;
 
+/**
+ * Addresses that are not the business's: website-template placeholders, error
+ * reporters, and — because sites do echo it back in debug output — whatever
+ * address our own crawler advertises in its user agent.
+ */
+const JUNK_EMAIL_DOMAIN = /@(?:[a-z0-9-]*\.)?(?:sample|your|my|test|dummy|placeholder|lorem)?(?:domain|site|website|company|business|email)\.|@(?:example|test|localhost|invalid)\.|@(?:sentry|wixpress|squarespace|godaddy)\./i;
+
+function isJunkEmail(value: string, ownContact: string | null): boolean {
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value)) return true;
+  if (/\.(?:png|jpe?g|gif|svg|webp|css|js)$/i.test(value)) return true;
+  if (JUNK_EMAIL_DOMAIN.test(value)) return true;
+  if (ownContact && value === ownContact) return true;
+  return false;
+}
+
+/** The contact address our own user agent advertises, so we never scrape it back. */
+function ownContactEmail(userAgent: string): string | null {
+  const match = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.exec(userAgent);
+  return match ? match[0].toLowerCase() : null;
+}
+
 function absolute(base: string, href: string): string | null {
   try {
     return new URL(href, base).toString();
@@ -90,7 +111,7 @@ function absolute(base: string, href: string): string | null {
   }
 }
 
-export function analyseHtml(html: string, pageUrl: string): WebsiteSignals {
+export function analyseHtml(html: string, pageUrl: string, userAgent = ''): WebsiteSignals {
   const $ = cheerio.load(html);
   $('script, style, noscript').each((_, el) => {
     // Keep script src/inline text for signal detection, but drop it from visible text.
@@ -166,14 +187,16 @@ export function analyseHtml(html: string, pageUrl: string): WebsiteSignals {
 
   // --- Contact details --------------------------------------------------
   const emails = new Set<string>();
+  const ownContact = ownContactEmail(userAgent);
+  // mailto links and page text go through the same filter — a placeholder in a
+  // theme's "contact us" link is not a real address.
   $('a[href^="mailto:"]').each((_, el) => {
     const value = ($(el).attr('href') ?? '').replace(/^mailto:/i, '').split('?')[0]!.trim().toLowerCase();
-    if (value) emails.add(value);
+    if (value && !isJunkEmail(value, ownContact)) emails.add(value);
   });
   for (const match of rawHtml.match(EMAIL_RE) ?? []) {
     const value = match.toLowerCase();
-    if (/\.(?:png|jpe?g|gif|svg|webp|css|js)$/i.test(value)) continue;
-    if (/(?:sentry|wixpress|example|domain)\./i.test(value)) continue;
+    if (isJunkEmail(value, ownContact)) continue;
     emails.add(value);
   }
 

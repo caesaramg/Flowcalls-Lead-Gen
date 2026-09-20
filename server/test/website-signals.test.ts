@@ -44,6 +44,25 @@ describe('analyseHtml', () => {
     assert.equal(signals.emails[0], 'info@northgate-plumbing.example.com');
   });
 
+  it('drops template placeholders, whether in a mailto link or the page text', () => {
+    const html = `<html><body>
+      <a href="mailto:contact@sampledomain.com">Email us</a>
+      <a href="mailto:info@realplumber.co.uk">Or here</a>
+      <p>Built by someone@yourdomain.com — errors to abc@sentry.io</p>
+    </body></html>`;
+    const result = analyseHtml(html, 'https://realplumber.co.uk/');
+    assert.deepEqual(result.emails, ['info@realplumber.co.uk']);
+  });
+
+  it('never scrapes back the contact address our own user agent advertises', () => {
+    // Some sites echo the request's user agent into a debug or blocked page.
+    const ua = 'FlowcallsProspectingBot/0.1 (+internal B2B research; contact: hello@flowcalls.example)';
+    const html = '<html><body><p>Blocked request from hello@flowcalls.example</p>' +
+      '<a href="mailto:info@spartangas.co.uk">Contact</a></body></html>';
+    const result = analyseHtml(html, 'https://spartangas.co.uk/', ua);
+    assert.deepEqual(result.emails, ['info@spartangas.co.uk']);
+  });
+
   it('reads the services straight off the page', () => {
     assert.equal(signals.services.svc_emergency, 1);
     assert.equal(signals.services.svc_24_7, 1);
