@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.local
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/uploads/
+*.log
+.DS_Store
+coverage/
+
+# Stray compiler output (the web app is bundled by Vite, never emitted to source)
+web/src/**/*.js
+web/vite.config.js
+*.tsbuildinfo

@@ -1,0 +1,40 @@
+{
+  "name": "@flowcalls/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "db:migrate": "tsx src/cli/migrate.ts",
+    "seed:demo": "tsx src/cli/seed-demo.ts",
+    "import:csv": "tsx src/cli/import-csv.ts",
+    "acquire": "tsx src/cli/acquire.ts",
+    "enrich": "tsx src/cli/enrich.ts",
+    "rescore": "tsx src/cli/rescore.ts",
+    "suppression:import": "tsx src/cli/suppression-import.ts",
+    "retention:purge": "tsx src/cli/retention-purge.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cheerio": "^1.1.2",
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.2",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
