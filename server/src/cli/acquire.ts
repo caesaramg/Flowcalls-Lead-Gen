@@ -4,11 +4,14 @@
  */
 import { getDb } from '../db/index.js';
 import { applySuppressionList } from '../domain/leads.js';
-import { apifyConfigured, fetchApifyDataset, searchGoogleMapsViaApify } from '../enrichment/apify-maps.js';
+import { apifyConfigured, apifyPlaceToLead, fetchApifyDataset, searchGoogleMapsViaApify, type ApifyPlace } from '../enrichment/apify-maps.js';
 import { googlePlacesConfigured, searchPlaces } from '../enrichment/google-places.js';
 import { importRecord } from '../ingest/csv-import.js';
+import { isTargetTrade } from '../enrichment/classify.js';
 import { buildSearchPlan } from '../ingest/search-plan.js';
+import fs from 'node:fs';
 import { flagBool, flagNumber, flagString, parseArgs } from './args.js';
+import { resolveUserPath } from './paths.js';
 
 const args = parseArgs();
 
@@ -24,6 +27,7 @@ imports what it finds. Requires GOOGLE_PLACES_API_KEY or APIFY_TOKEN.
   --templates    Restrict to these query templates
   --location     Apify only: one location per run (default "United Kingdom")
   --dataset ID   Import an Apify dataset that has already been scraped
+  --file PATH    Import a JSON export of Apify Google Maps results
   --plan-only    Print the search plan and stop
   --dry-run      Run the searches but do not write to the database`);
   process.exit(0);
@@ -31,6 +35,60 @@ imports what it finds. Requires GOOGLE_PLACES_API_KEY or APIFY_TOKEN.
 
 const provider = flagString(args, 'provider') ?? 'google_places';
 const datasetId = flagString(args, 'dataset');
+const jsonFile = flagString(args, 'file');
+
+// An exported JSON file needs no token and no network access at all.
+if (jsonFile) {
+  const resolved = resolveUserPath(jsonFile);
+  if (!fs.existsSync(resolved)) {
+    console.error(`File not found: ${resolved}`);
+    process.exit(1);
+  }
+  const parsedFile: unknown = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+  const records = (Array.isArray(parsedFile) ? parsedFile : (parsedFile as { items?: unknown[] }).items ?? []) as ApifyPlace[];
+  console.log(`Read ${records.length} place(s) from ${resolved}`);
+
+  const db = getDb();
+  let fileCreated = 0;
+  let fileUpdated = 0;
+  let fileClosed = 0;
+  let fileOffTarget = 0;
+  const targetOnly = !flagBool(args, 'all-trades');
+
+  for (const record of records) {
+    if (!record?.title) continue;
+    if (record.permanentlyClosed || record.temporarilyClosed) {
+      fileClosed += 1;
+      continue;
+    }
+    const values = apifyPlaceToLead(record);
+    const text = [record.title, record.categoryName, ...(record.categories ?? []), record.ownerDescription]
+      .filter(Boolean)
+      .join(' ');
+    if (targetOnly && !isTargetTrade(text)) {
+      fileOffTarget += 1;
+      continue;
+    }
+    const outcome = importRecord(
+      db,
+      values as Record<string, unknown> & { company_name: string },
+      'apify',
+      record.searchString ?? 'Apify export',
+    );
+    if (outcome.created) fileCreated += 1;
+    else fileUpdated += 1;
+  }
+
+  const fileSuppressed = applySuppressionList(db);
+  console.log(`  New prospects:   ${fileCreated}`);
+  console.log(`  Already known:   ${fileUpdated}`);
+  console.log(`  Closed skipped:  ${fileClosed}`);
+  console.log(`  Off-target skipped: ${fileOffTarget}`);
+  console.log(`  Suppressed:      ${fileSuppressed}`);
+  console.log(`\nNext: npm run enrich -- --limit 200`);
+  db.close();
+  process.exit(0);
+}
 
 if (datasetId) {
   if (!apifyConfigured()) {

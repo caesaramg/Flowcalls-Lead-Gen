@@ -93,11 +93,17 @@ billing account, and it returns more per place. The importer reads:
 The actor takes **one location per run**, so `--location` sets the search area.
 "United Kingdom" works: the actor splits a country into subregions itself.
 
-Already ran a scrape from the Apify console? Import the dataset straight in:
+Already ran a scrape from the Apify console? Import it straight in, either by
+dataset id or from a downloaded JSON export:
 
 ```bash
-npm run acquire -- --dataset <apify-dataset-id>
+npm run acquire -- --dataset <apify-dataset-id>   # needs APIFY_TOKEN
+npm run acquire -- --file apify-export.json       # no token, no network
 ```
+
+Both paths skip closed businesses and, by default, anything with no plumbing,
+heating, boiler or drainage signal in its name, categories or owner description.
+Pass `--all-trades` to keep everything.
 
 The planner works across UK cities × the five query templates from the brief
 (`plumber`, `emergency plumber`, `heating engineer`, `boiler repair`,
@@ -236,6 +242,7 @@ npm run suppression:import -- tps-export.csv
 | `npm run import:csv -- <file>` | Import a CSV (`--dry-run`, `--target-trades-only`, `--limit N`) |
 | `npm run acquire -- --target 1000` | Search Google Maps and import (`--provider`, `--location`, `--plan-only`, `--dry-run`) |
 | `npm run acquire -- --dataset <id>` | Import an Apify dataset that has already been scraped |
+| `npm run acquire -- --file <path>` | Import a downloaded Apify JSON export (offline) |
 | `npm run enrich -- --limit 200` | Enrich prospects (`--all`, `--refresh`, `--providers`) |
 | `npm run rescore` | Rescore everything against the active config |
 | `npm run suppression:import -- <file>` | Load TPS/CTPS numbers into the suppression list |
