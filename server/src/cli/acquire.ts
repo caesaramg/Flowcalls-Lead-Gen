@@ -153,20 +153,56 @@ let updated = 0;
 let seen = 0;
 
 if (provider === 'apify') {
-  const queries = plan.searches.map((s) => s.query);
-  console.log(`Running ${queries.length} queries through Apify (this can take several minutes)…`);
-  const result = await searchGoogleMapsViaApify(queries, {
-    maxPerQuery: Math.max(...plan.searches.map((s) => s.maxResults)),
-    location: flagString(args, 'location') ?? 'United Kingdom',
-  });
-  console.log(`  ${result.message}`);
-  seen = result.places.length;
-  if (!dryRun) {
-    for (const place of result.places) {
-      if (!place['company_name']) continue;
-      const outcome = importRecord(db, place as Record<string, unknown> & { company_name: string }, 'apify', 'acquire');
-      if (outcome.created) created += 1;
-      else updated += 1;
+  // One actor run per town. A single country-wide run looks cheaper, but the
+  // actor picks its own subregions and the results bunch up: a "United Kingdom"
+  // sweep came back 47% South West and 33% unknown, with whole regions missing.
+  // Driving the location explicitly is what actually spreads the coverage.
+  const override = flagString(args, 'location');
+  const byCity = new Map<string, typeof plan.searches>();
+  for (const search of plan.searches) {
+    const list = byCity.get(search.city) ?? [];
+    list.push(search);
+    byCity.set(search.city, list);
+  }
+
+  const cityCount = byCity.size;
+  console.log(`Running ${cityCount} Apify search(es), one per town. Each takes a few minutes…`);
+
+  let cityIndex = 0;
+  for (const [city, searches] of byCity) {
+    cityIndex += 1;
+    // The templates already name the town; the actor wants the bare terms plus
+    // an explicit location, so strip the " in <city>" suffix back off.
+    const terms = [...new Set(searches.map((search) => search.template.replace(/\s*in \{city\}\s*$/, '').trim()))];
+    const location = override ?? `${city}, United Kingdom`;
+    const result = await searchGoogleMapsViaApify(terms, {
+      maxPerQuery: Math.max(...searches.map((search) => search.maxResults)),
+      location,
+    });
+    seen += result.places.length;
+
+    if (!dryRun) {
+      for (const place of result.places) {
+        if (!place['company_name']) continue;
+        const outcome = importRecord(
+          db,
+          place as Record<string, unknown> & { company_name: string },
+          'apify',
+          location,
+        );
+        if (outcome.created) created += 1;
+        else updated += 1;
+      }
+    }
+
+    console.log(
+      `[${String(cityIndex).padStart(3)}/${cityCount}] ${location.padEnd(34)} ` +
+      `${result.places.length} result(s) · ${created} new so far`,
+    );
+    if (!result.ok) console.log(`         ${result.message}`);
+    if (created >= plan.target) {
+      console.log(`Reached the target of ${plan.target} new prospects — stopping.`);
+      break;
     }
   }
 } else {

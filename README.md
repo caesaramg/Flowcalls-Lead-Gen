@@ -90,8 +90,12 @@ billing account, and it returns more per place. The importer reads:
   inbox (`info@`, `contact@`, …) is kept; a named personal address is skipped.
 - `categories`, the full list, and Google's own attribute groups.
 
-The actor takes **one location per run**, so `--location` sets the search area.
-"United Kingdom" works: the actor splits a country into subregions itself.
+The actor takes **one location per run**, so `acquire` does one run per town
+from the search plan. Do not be tempted to sweep the whole country in a single
+run to save time — the actor picks its own subregions and the results bunch up.
+A "United Kingdom" run here came back 47% South West and 33% with no region at
+all, with whole regions missing. `--location` overrides the town if you want to
+aim a run somewhere specific.
 
 Already ran a scrape from the Apify console? Import it straight in, either by
 dataset id or from a downloaded JSON export:
