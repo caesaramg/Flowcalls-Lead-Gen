@@ -26,6 +26,9 @@ is worth ringing, tell you why, and remember what happened.
 
 ## Quick start
 
+Needs **Node 22.13 or newer** (24 recommended) — that is where `node:sqlite`
+is available. Nothing else: no database server, no build tools.
+
 ```bash
 npm install
 cp .env.example .env        # optional — the app runs without any keys
@@ -69,10 +72,12 @@ folder causes slow installs and intermittent locked-file errors, because
 OneDrive tries to sync tens of thousands of small files while npm is writing
 them. Put the project somewhere local, e.g. `C:\dev\Flowcalls-Lead-Gen`.
 
-**Windows: `better-sqlite3`.** It ships prebuilt binaries for current Node
-versions, so it should just install. If npm falls back to compiling it, either
-move to a Node version with a prebuild available, or install the Visual Studio
-C++ build tools.
+**There is nothing to compile.** This project has **no native dependencies**.
+Storage uses `node:sqlite`, the SQLite build that ships inside Node itself, so
+there is no addon to download a prebuilt binary for and no fallback to
+`node-gyp`. You do not need Python, Visual Studio, or C++ build tools on any
+platform. If you ever see `node-gyp rebuild` while installing this project,
+something has pulled in a dependency that should not be there.
 
 For production-style use:
 
@@ -296,7 +301,7 @@ npm run suppression:import -- tps-export.csv
 ## How it is put together
 
 ```
-server/          Node + TypeScript + Express, SQLite via better-sqlite3
+server/          Node + TypeScript + Express, storage via node:sqlite
   src/domain/    Leads, scoring, pipeline, personalisation, UK normalisation
   src/enrichment/ Website / Google Places / Companies House providers
   src/ingest/    CSV mapping and import, search planning

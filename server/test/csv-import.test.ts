@@ -41,6 +41,33 @@ describe('parseCsv + suggestMapping', () => {
     assert.equal(mapping['phoneUnformatted'], null);
   });
 
+  it('round-trips the app’s own CSV export', () => {
+    // These are the data-bearing columns /api/leads/export.csv writes. An export
+    // you edit in a spreadsheet and re-import must not lose them.
+    const exported = [
+      'company_name', 'trade', 'phone', 'email', 'website', 'address_line', 'city',
+      'postcode', 'region', 'owner_name', 'owner_role', 'companies_house_number',
+      'company_status', 'year_established', 'employee_count', 'google_rating',
+      'google_review_count', 'google_maps_url', 'google_category', 'svc_emergency',
+      'svc_24_7', 'svc_boiler_repair', 'svc_boiler_install', 'svc_drainage',
+      'svc_commercial', 'has_google_ads', 'has_website', 'has_online_booking',
+      'booking_software', 'website_quality_score', 'follow_up_date', 'next_action', 'notes',
+    ];
+    const mapping = suggestMapping(exported);
+    const unmapped = exported.filter((header) => !mapping[header]);
+    assert.deepEqual(unmapped, [], 'every exported data column maps back to its own field');
+    for (const header of exported) assert.equal(mapping[header], header, `${header} maps to itself`);
+  });
+
+  it('does not re-import derived or pipeline state', () => {
+    // Scores are recomputed, history belongs to the app, and do-not-call is
+    // owned by the suppression list — a CSV must not be able to clear it.
+    const derived = ['id', 'score', 'score_band', 'status', 'created_at', 'do_not_call',
+      'test_call_outcome', 'last_call_outcome', 'last_called_at'];
+    const mapping = suggestMapping(derived);
+    assert.deepEqual(derived.filter((h) => mapping[h]), []);
+  });
+
   it('handles a hand-made spreadsheet with friendly headers', () => {
     const mapping = suggestMapping(['Business Name', 'Telephone', 'Web', 'Town', 'Post Code', 'Rating', 'Number of reviews']);
     assert.equal(mapping['Business Name'], 'company_name');

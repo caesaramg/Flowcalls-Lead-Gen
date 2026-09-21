@@ -5,7 +5,7 @@
   "description": "Internal prospecting and lead enrichment system for Flowcalls (AI phone answering for UK plumbers and heating engineers).",
   "type": "module",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=22.13"
   },
   "workspaces": [
     "server",

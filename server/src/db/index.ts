@@ -1,20 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
 import { env } from '../lib/env.js';
 import { log } from '../lib/logger.js';
 import { migrations } from './schema.js';
+import { createDatabase, type Db } from './sqlite.js';
 
-export type Db = Database.Database;
+export type { Db, Statement, RunResult } from './sqlite.js';
 
 let instance: Db | null = null;
 
 export function openDatabase(filePath: string = env.databasePath): Db {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const db = new Database(filePath);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.pragma('busy_timeout = 5000');
+  const db = createDatabase(filePath);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
   migrate(db);
   return db;
 }
@@ -26,8 +26,8 @@ export function getDb(): Db {
 
 /** Used by tests to run against a throwaway in-memory database. */
 export function openTestDatabase(): Db {
-  const db = new Database(':memory:');
-  db.pragma('foreign_keys = ON');
+  const db = createDatabase(':memory:');
+  db.exec('PRAGMA foreign_keys = ON');
   migrate(db);
   return db;
 }

@@ -9,13 +9,14 @@
 export const CANONICAL_FIELDS = [
   'company_name', 'website', 'phone', 'email', 'address_line', 'city', 'postcode', 'region',
   'trade', 'companies_house_number', 'company_status', 'year_established', 'employee_count',
-  'owner_name', 'google_place_id', 'google_rating', 'google_review_count', 'google_maps_url',
+  'owner_name', 'owner_role', 'google_place_id', 'google_rating', 'google_review_count', 'google_maps_url',
   'google_category', 'google_description', 'opening_hours', 'opens_24_7',
   'svc_plumbing', 'svc_heating', 'svc_boiler_repair', 'svc_boiler_install', 'svc_emergency',
   'svc_drainage', 'svc_commercial', 'svc_domestic', 'svc_24_7', 'svc_gas_safe', 'svc_bathrooms',
   'svc_other', 'has_google_ads', 'has_facebook', 'has_instagram', 'has_linkedin',
-  'has_online_booking', 'has_contact_form', 'booking_software', 'facebook_url', 'instagram_url',
-  'linkedin_url', 'notes', 'source_ref',
+  'has_online_booking', 'has_contact_form', 'has_website', 'has_live_chat', 'booking_software',
+  'website_quality_score', 'facebook_url', 'instagram_url', 'linkedin_url',
+  'follow_up_date', 'next_action', 'notes', 'source_ref',
 ] as const;
 export type CanonicalField = (typeof CANONICAL_FIELDS)[number];
 
@@ -34,8 +35,9 @@ const ALIASES: Record<CanonicalField, string[]> = {
   year_established: ['year_established', 'yearestablished', 'founded', 'established', 'incorporated', 'incorporationyear'],
   employee_count: ['employee_count', 'employees', 'employeecount', 'staff', 'headcount', 'engineers', 'teamsize'],
   owner_name: ['owner_name', 'owner', 'ownername', 'director', 'contactname', 'contact', 'principal', 'managingdirector'],
+  owner_role: ['owner_role', 'ownerrole', 'jobtitle', 'title_role', 'position'],
   google_place_id: ['google_place_id', 'placeid', 'place_id', 'googleplaceid', 'fid', 'cid'],
-  google_rating: ['google_rating', 'rating', 'totalscore', 'score', 'stars', 'averagerating', 'reviewrating'],
+  google_rating: ['google_rating', 'rating', 'totalscore', 'stars', 'averagerating', 'reviewrating', 'googlescore'],
   google_review_count: ['google_review_count', 'reviews', 'reviewscount', 'reviewcount', 'numberofreviews', 'userratingstotal', 'user_ratings_total', 'totalreviews'],
   google_maps_url: ['google_maps_url', 'mapsurl', 'googlemapsurl', 'maps_url', 'googleurl', 'placeurl', 'url', 'link'],
   google_category: ['google_category', 'category', 'categoryname', 'maincategory', 'type', 'types', 'primarycategory'],
@@ -60,21 +62,29 @@ const ALIASES: Record<CanonicalField, string[]> = {
   has_linkedin: ['has_linkedin', 'linkedin_detected'],
   has_online_booking: ['has_online_booking', 'onlinebooking', 'online_booking', 'bookingavailable'],
   has_contact_form: ['has_contact_form', 'contactform', 'contact_form'],
+  has_website: ['has_website', 'websitedetected'],
+  has_live_chat: ['has_live_chat', 'livechat', 'livechatdetected'],
   booking_software: ['booking_software', 'bookingsystem', 'bookingtool'],
+  website_quality_score: ['website_quality_score', 'websitequality', 'sitequality', 'websitescore'],
+  follow_up_date: ['follow_up_date', 'followupdate', 'followup', 'callbackdate'],
+  next_action: ['next_action', 'nextaction', 'nextstep'],
   facebook_url: ['facebook_url', 'facebook', 'facebookpage', 'fb', 'facebooks'],
   instagram_url: ['instagram_url', 'instagram', 'instagrams', 'ig'],
   linkedin_url: ['linkedin_url', 'linkedin', 'linkedins'],
   notes: ['notes', 'note', 'comments', 'remarks'],
-  source_ref: ['source_ref', 'sourceref', 'searchstring', 'searchquery', 'keyword', 'query', 'externalid', 'id'],
+  source_ref: ['source_ref', 'sourceref', 'searchstring', 'searchquery', 'keyword', 'query', 'externalid'],
 };
-
-const LOOKUP = new Map<string, CanonicalField>();
-for (const [field, aliases] of Object.entries(ALIASES) as Array<[CanonicalField, string[]]>) {
-  for (const alias of aliases) LOOKUP.set(alias, field);
-}
 
 export function normaliseHeader(header: string): string {
   return header.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+const LOOKUP = new Map<string, CanonicalField>();
+for (const [field, aliases] of Object.entries(ALIASES) as Array<[CanonicalField, string[]]>) {
+  // Keys go through the same normalisation as incoming headers, otherwise an
+  // alias containing punctuation ("google_rating") could never be matched.
+  for (const alias of aliases) LOOKUP.set(normaliseHeader(alias), field);
+  LOOKUP.set(normaliseHeader(field), field);
 }
 
 /** Best-guess mapping from CSV headers to canonical fields. */

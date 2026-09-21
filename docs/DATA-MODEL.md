@@ -1,7 +1,8 @@
 # Data model and API
 
-One SQLite file (`data/flowcalls.db`) holds everything. Migrations are
-append-only and run automatically on start-up.
+One SQLite file (`data/flowcalls.db`) holds everything, through `node:sqlite`
+(the SQLite build inside Node — no native addon, nothing to compile).
+Migrations are append-only and run automatically on start-up.
 
 ---
 
