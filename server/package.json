@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test test/*.test.ts",
+    "test": "tsx --test \"test/**/*.test.ts\"",
     "db:migrate": "tsx src/cli/migrate.ts",
     "seed:demo": "tsx src/cli/seed-demo.ts",
     "import:csv": "tsx src/cli/import-csv.ts",

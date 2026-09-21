@@ -35,6 +35,45 @@ npm run dev                 # API on :4000, UI on :5173
 
 Open <http://localhost:5173>.
 
+### If something goes wrong on first run
+
+**`'tsx' is not recognized as an internal or external command`** (or
+`tsx: command not found`)
+
+The dependencies are not installed. This project is an npm workspace: everything
+installs into the **repository root**, not into `server/` or `web/`, so
+`npm install` has to be run from the top-level folder.
+
+```bash
+cd Flowcalls-Lead-Gen     # the folder containing package.json and .gitignore
+npm install
+npm ls tsx                # should print @flowcalls/server -> tsx@4.x
+```
+
+If `npm install` printed errors, fix those first — a half-finished install
+leaves exactly this symptom. Re-run it after deleting `node_modules` and
+`package-lock.json` if you need a clean slate.
+
+**Windows: `~` is not a path.** `cmd.exe` and PowerShell do not expand `~` the
+way a Unix shell does. The CLIs expand a leading `~/` themselves, but if you
+pass a path any other way, give the full thing:
+
+```bat
+npm run import:csv -- "C:\Users\you\Downloads\flowcalls-uk-plumbing-prospects.csv"
+```
+
+Quote any path containing spaces.
+
+**Windows: avoid OneDrive.** Keeping `node_modules` inside a synced OneDrive
+folder causes slow installs and intermittent locked-file errors, because
+OneDrive tries to sync tens of thousands of small files while npm is writing
+them. Put the project somewhere local, e.g. `C:\dev\Flowcalls-Lead-Gen`.
+
+**Windows: `better-sqlite3`.** It ships prebuilt binaries for current Node
+versions, so it should just install. If npm falls back to compiling it, either
+move to a Node version with a prebuild available, or install the Visual Studio
+C++ build tools.
+
 For production-style use:
 
 ```bash
