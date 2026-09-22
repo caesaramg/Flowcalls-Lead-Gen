@@ -173,18 +173,29 @@ Companies House data is published under the Open Government Licence.
 
 ## 10. Security
 
-The API binds to `127.0.0.1` and has no authentication, because it is designed as
-a single-user tool on your own machine. The database contains commercially
-sensitive data and personal data (director names, your call notes).
+The database contains commercially sensitive data and personal data (director
+names, business contact details, your call notes).
 
-If you move it off your machine:
+Locally the API binds to `127.0.0.1` and runs without a password, because only
+your own machine can reach it. **The server refuses to start on any other
+interface unless `APP_PASSWORD` is set** — an unauthenticated deployment is not
+something you can do by accident.
 
-- put it behind authentication and TLS;
-- restrict network access;
-- encrypt the disk;
-- back up `data/flowcalls.db` somewhere equally protected.
+When you host it:
 
-Do not deploy it to a public host as-is.
+- set `APP_PASSWORD` to something long and random, and keep it in the host's
+  secret store rather than in a file (`fly secrets set APP_PASSWORD=…`);
+- terminate TLS at the platform (`force_https` is on in `fly.toml`) so Basic
+  auth credentials are never sent in clear;
+- keep the volume holding `data/flowcalls.db` encrypted, and back it up
+  somewhere equally protected;
+- remember that `/api/health` is deliberately unauthenticated so the platform's
+  load balancer can probe it. It returns nothing but liveness.
+
+Basic auth is a single shared credential, which suits a single-user internal
+tool. If more than one person ever needs access, replace it with per-user
+accounts before handing the URL out — shared passwords cannot be revoked
+individually, and you lose any record of who changed what.
 
 ---
 

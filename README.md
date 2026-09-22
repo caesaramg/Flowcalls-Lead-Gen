@@ -277,6 +277,58 @@ npm run suppression:import -- tps-export.csv
 
 ---
 
+## Hosting it
+
+This is a single Node process with a SQLite file on disk, so it wants a host
+that gives you **a persistent process and a mounted volume**. A `Dockerfile` and
+`fly.toml` are included; Railway, Render or any VPS work the same way.
+
+It is not a fit for static/serverless hosts such as Netlify, Vercel or
+Cloudflare Pages. Their functions are stateless with no durable local
+filesystem, so the database would be lost between invocations. Moving there
+means replacing SQLite with a hosted database and making every query async —
+a rewrite, not a deploy.
+
+### Fly.io
+
+```bash
+fly launch --no-deploy                  # or: fly apps create flowcalls-prospecting
+fly volumes create flowcalls_data --size 1 --region lhr
+fly secrets set APP_PASSWORD="$(openssl rand -base64 24)"
+fly deploy
+```
+
+Then load your prospects into the hosted instance:
+
+```bash
+fly ssh console -C "node server/dist/index.js --help"   # confirm it boots
+fly proxy 8080:8080                                     # in another terminal
+# visit http://localhost:8080 and use the Import page
+```
+
+### Access control
+
+The app has one shared password, over HTTP Basic auth:
+
+| `APP_PASSWORD` | `HOST` | Result |
+|---|---|---|
+| unset | `127.0.0.1` | Runs open. Only your machine can reach it. |
+| unset | anything else | **Refuses to start.** |
+| set | any | Password required on every route except `/api/health`. |
+
+`/api/health` stays open so the platform's load balancer can probe it; it
+returns liveness and nothing else.
+
+That refusal is deliberate. The database holds real business contact details,
+director names from the public register, and your call notes — personal data
+under UK GDPR. Publishing it without a password would be a reportable breach,
+so the server will not let you do it by accident.
+
+Keep the password in the platform's secret store, never in `.env` in the repo.
+Back up the volume: `data/flowcalls.db` is the entire system.
+
+---
+
 ## Commands
 
 | Command | What it does |

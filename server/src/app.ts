@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
+import { createAuthMiddleware } from './lib/auth.js';
 import { env } from './lib/env.js';
 import { errorHandler } from './lib/http-helpers.js';
 import { adminRouter } from './routes/admin.js';
@@ -10,6 +11,11 @@ export function createApp(): express.Express {
   const app = express();
 
   app.disable('x-powered-by');
+
+  // Applied before anything else, so it covers the API and the built UI alike.
+  const auth = createAuthMiddleware();
+  if (auth) app.use(auth);
+
   app.use(express.json({ limit: '30mb' }));
   app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 

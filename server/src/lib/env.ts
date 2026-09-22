@@ -47,6 +47,10 @@ export const env = {
   maxPagesPerSite: int('MAX_PAGES_PER_SITE', 5),
   respectRobotsTxt: bool('RESPECT_ROBOTS_TXT', true),
 
+  /** Access control. Required whenever the server is not bound to loopback. */
+  appUser: str('APP_USER', 'flowcalls'),
+  appPassword: str('APP_PASSWORD'),
+
   /** Compliance. */
   retentionMonths: int('RETENTION_MONTHS', 24),
   requireTpsScreening: bool('REQUIRE_TPS_SCREENING', true),

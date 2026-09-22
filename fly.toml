@@ -1,0 +1,40 @@
+# Fly.io deployment. One small machine with a persistent volume for the
+# SQLite file — this app is a single-user internal tool, not a cluster.
+app = "flowcalls-prospecting"
+primary_region = "lhr"
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  DATABASE_PATH = "/data/flowcalls.db"
+  RETENTION_MONTHS = "24"
+
+[[mounts]]
+  source = "flowcalls_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # SQLite on a single volume means exactly one writer. Never scale this past 1.
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
